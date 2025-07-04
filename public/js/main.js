@@ -4,7 +4,6 @@ import { createAccount } from './account.js';
 import { submitEnquiry } from './enquiry.js';
 
 // ✅ FIRST LOGIN FORM (FirstLogin.html)
-
 const firstLoginForm = document.getElementById('firstLoginForm');
 if (firstLoginForm) {
   console.log('✅ First login form found');
@@ -13,12 +12,6 @@ if (firstLoginForm) {
     console.log('🚀 Submitting first login form');
     await firstLogin();
   });
-}
-
-// ✅ CHANGE PASSWORD FORM
-const changePwdBtn = document.getElementById('changePwdBtn');
-if (changePwdBtn) {
-  changePwdBtn.onclick = changePassword;
 }
 
 // ✅ CREATE ACCOUNT BUTTON
@@ -85,3 +78,15 @@ window.togglePassword = function (id) {
   const field = document.getElementById(id);
   field.type = field.type === 'password' ? 'text' : 'password';
 };
+
+// ✅ Bind Change Password Form
+document.addEventListener('DOMContentLoaded', () => {
+  const changePasswordForm = document.getElementById('changePasswordForm');
+
+  if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); // ✅ prevent page reload
+      await changePassword(); // ✅ call backend
+    });
+  }
+});

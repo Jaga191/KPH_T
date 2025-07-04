@@ -1,55 +1,63 @@
-// 📁 public/js/auth.js
-import { apiPost } from './api.js';
+const express = require('express');
 
-export async function firstLogin() {
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value.trim();
+module.exports = (pool) => {
+  const router = express.Router(); // ✅ move inside exported function
 
-  if (!email || !password) {
-    alert('Please enter email and password');
-    return;
-  }
+  // === POST /api/first-login ===
+  router.post('/first-login', async (req, res) => {
+    const { email, password } = req.body;
 
-  // ✅ FIXED route: now points to /api/first-login
-  const data = await apiPost('/api/first-login', { email, password });
-  console.log('🔁 Server response:', data);
+    try {
+      const query = 'SELECT * FROM users WHERE email = $1';
+      const result = await pool.query(query, [email]);
 
-  if (data.error) {
-    alert(data.error || 'Login failed');
-    return;
-  }
+      if (result.rows.length === 0) {
+        return res.status(400).json({ error: 'User not found' });
+      }
 
-  localStorage.setItem('userContact', email);
+      const user = result.rows[0];
 
-  if (data.firstLogin === true) {
-    window.location.href = 'ChangePassword.html';
-  } else {
-    window.location.href = 'SelectForm.html';
-  }
-}
+      if (user.password !== password) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
 
-export async function changePassword() {
-  const email = localStorage.getItem('userContact');
-  const oldPassword = document.getElementById('oldPassword')?.value.trim();
-  const newPassword = document.getElementById('newPasswordChange')?.value.trim();
-  const confirmPassword = document.getElementById('retypeNewPassword')?.value.trim();
+      const isFirstLogin = user.first_login === true;
 
-  if (!oldPassword || !newPassword || newPassword !== confirmPassword) {
-    alert('Passwords do not match or are empty');
-    return;
-  }
-
-  // ✅ FIXED route: now points to /api/change-password
-  const data = await apiPost('/api/change-password', {
-    email,
-    oldPassword,
-    newPassword,
+      res.json({ message: 'Login successful', firstLogin: isFirstLogin });
+    } catch (error) {
+      console.error('Error during login:', error);
+      res.status(500).json({ error: 'Server error' });
+    }
   });
 
-  if (data.error) {
-    alert(data.error);
-  } else {
-    alert(data.message || 'Password changed successfully!');
-    window.location.href = 'SelectForm.html';
-  }
-}
+  // === POST /api/change-password ===
+  router.post('/change-password', async (req, res) => {
+    const { email, oldPassword, newPassword } = req.body;
+
+    try {
+      const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+
+      if (result.rows.length === 0) {
+        return res.status(400).json({ error: 'User not found' });
+      }
+
+      const user = result.rows[0];
+
+      if (user.password !== oldPassword) {
+        return res.status(403).json({ error: 'Old password is incorrect' });
+      }
+
+      await pool.query(
+        'UPDATE users SET password = $1, first_login = false WHERE email = $2',
+        [newPassword, email]
+      );
+
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Error during password change:', error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  return router;
+};

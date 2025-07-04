@@ -11,8 +11,11 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+console.log('AUTH MODULE:', require('./routes/auth'));
+
 // ✅ Load route files
-const authRoutes = require('./routes/auth').default(pool);
+// ✅ Correct CommonJS style
+const authRoutes = require('./routes/auth')(pool);
 const accountRoutes = require('./routes/account')(pool);
 const enquiryRoutes = require('./routes/enquiry')(pool);
 const demoRoutes = require('./routes/demo')(pool);
